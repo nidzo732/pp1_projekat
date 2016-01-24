@@ -4,7 +4,6 @@ i dekripciju sadrzaja fajlova upotrebom block-cipher algoritama.
 """
 import os
 import random
-import re
 import hmac
 import hashlib
 import tempfile
@@ -13,8 +12,6 @@ from block_ciphers.block_management import fetch_blocks, BadLengthError
 from algorithms import algorithms
 from util_functions import integer_to_bytes
 from operation_modes import operation_modes
-
-algorithm_name_regex = "^([A-Za-z0-9]+)\-([A-Za-z0-9]+)$"
 
 
 def encrypt(infile, outfile, key, algorithm, authenticate=True):
@@ -42,11 +39,11 @@ def encrypt(infile, outfile, key, algorithm, authenticate=True):
     """
 
     try:
-        parameters = re.findall(algorithm_name_regex, algorithm)
+        parameters = algorithm.split("-")
 
-        if not parameters:  # provera validnosti parametara
+        if len(parameters) != 2:  # provera validnosti parametara
             return "Los format za ime algoritma"
-        algorithm, operation_mode = parameters[0]
+        algorithm, operation_mode = parameters
         if algorithm not in algorithms:
             return "Nepostojeci algoritam" + algorithm
         if operation_mode not in operation_modes:
@@ -56,22 +53,22 @@ def encrypt(infile, outfile, key, algorithm, authenticate=True):
             return "Neispravan kljuc"
 
         mac_generator = None
-        if authenticate:    # pokrecemo HMAC generator
+        if authenticate:  # pokrecemo HMAC generator
             mac_generator = hmac.new(key, digestmod=hashlib.sha256)
 
         blocks = fetch_blocks(infile, algorithm.BLOCK_SIZE)  # pokrecemo dobavljac blokova
 
         for block in operation_modes[operation_mode].encrypt(blocks, key, algorithm):
-            outfile.write(block)    # upisujemo izlaz
-            if authenticate:        # generisemo HMAC blok po blok
+            outfile.write(block)  # upisujemo izlaz
+            if authenticate:  # generisemo HMAC blok po blok
                 mac_generator.update(block)
 
-        if mac_generator:       # upisujemo HMAC
+        if mac_generator:  # upisujemo HMAC
             outfile.write(mac_generator.digest())
 
         return None  # sve OK
     except OSError as error:
-        return "Citanje fajla nije uspelo: "+error.strerror
+        return "Citanje fajla nije uspelo: " + error.strerror
 
 
 def decrypt(infile, outfile, key, algorithm, authenticate=True):
@@ -99,10 +96,11 @@ def decrypt(infile, outfile, key, algorithm, authenticate=True):
      u redu
     """
     try:
-        parameters = re.findall(algorithm_name_regex, algorithm)
-        if not parameters:  # provera validnosti parametara
+        parameters = algorithm.split("-")
+
+        if len(parameters) != 2:  # provera validnosti parametara
             return "Los format za ime algoritma"
-        algorithm, operation_mode = parameters[0]
+        algorithm, operation_mode = parameters
         if algorithm not in algorithms:
             return "Nepostojeci algoritam" + algorithm
         if operation_mode not in operation_modes:
@@ -112,7 +110,7 @@ def decrypt(infile, outfile, key, algorithm, authenticate=True):
             return "Neispravan kljuc"
 
         mac_generator = None
-        if authenticate:    # ako je zatrazena provera, generisemo HMAC i proveravamo ga
+        if authenticate:  # ako je zatrazena provera, generisemo HMAC i proveravamo ga
             mac_generator = hmac.new(key, digestmod=hashlib.sha256)
             infile.seek(-mac_generator.digest_size, os.SEEK_END)
             mac = infile.read()
@@ -123,7 +121,7 @@ def decrypt(infile, outfile, key, algorithm, authenticate=True):
                 return "Desifrovanje fajla nije moguce sa ovom sifrom"
             infile.seek(0)  # vracamo se na pocetak fajla
 
-        if mac_generator:   # ne zelimo da dekriptujemo sam HMAC
+        if mac_generator:  # ne zelimo da dekriptujemo sam HMAC
             blocks = fetch_blocks(infile, algorithm.BLOCK_SIZE, mac_generator.digest_size, pad=False)
         else:
             blocks = fetch_blocks(infile, algorithm.BLOCK_SIZE, pad=False)
@@ -133,7 +131,7 @@ def decrypt(infile, outfile, key, algorithm, authenticate=True):
     except BadLengthError:
         return "Sadrzaj fajla je neispravan ili nije odgovarajuce duzine"
     except OSError as error:
-        return "Citanje fajla nije uspelo: "+error.strerror
+        return "Citanje fajla nije uspelo: " + error.strerror
 
 
 def generate_key(password, algorithm):
