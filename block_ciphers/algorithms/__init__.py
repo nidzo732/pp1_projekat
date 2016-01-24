@@ -28,10 +28,27 @@ Da bi se dodao novi algoritam potrebno je uraditi sledece:
 3) Importovati modul u ovaj fajl i dodati ga u recnik algorithms,
 dodeliti mu string koji ga jedinstveno identifikuje
 """
+import logging
 
-from cryptography.block_ciphers.algorithms import des, triple_des
+from block_ciphers.algorithms import des, aes128, triple_des, aes192, aes256
 
-algorithms = {"DES": des,
-              "3DES": triple_des}
+installed_algorithms = {"DES": des,
+                        "3DES": triple_des,
+                        "AES128": aes128,
+                        "AES192": aes192,
+                        "AES256": aes256}
+
+algorithms = {}
+required_attributes = ["BLOCK_SIZE", "generate_key", "validate_key", "encrypt_block", "decrypt_block"]
+
+# proveravamo da li svi algoritmi imaju trazenu strukturu, oni koji je nemaju se ne dodaju
+# na listu dostupnih
+for algorithm_name in installed_algorithms.keys():
+    for attribute in required_attributes:
+        if not hasattr(installed_algorithms[algorithm_name], attribute):
+            logging.warning("Algoritam {} nije ispravan, nedostaje {}".format(algorithm_name, attribute))
+            break
+    else:
+        algorithms[algorithm_name] = installed_algorithms[algorithm_name]
 
 __all__ = ["algorithms"]

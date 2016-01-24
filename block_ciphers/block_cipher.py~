@@ -8,16 +8,16 @@ import re
 import hmac
 import hashlib
 import tempfile
-from cryptography.block_ciphers.block_management import fetch_blocks
 
+from block_ciphers.block_management import fetch_blocks, BadLengthError
 from algorithms import algorithms
-from cryptography.util_functions import integer_to_bytes
+from util_functions import integer_to_bytes
 from operation_modes import operation_modes
 
 algorithm_name_regex = "^([A-Za-z0-9]+)\-([A-Za-z0-9]+)$"
 
 
-def encrypt(infile, outfile, key, algorithm, authenticate=False):
+def encrypt(infile, outfile, key, algorithm, authenticate=True):
     """
     Enkriptuje sadrzaj ulaznog fajla i upisuje ga u izlazni fajl.
 
@@ -30,9 +30,9 @@ def encrypt(infile, outfile, key, algorithm, authenticate=False):
 
     :param algorithm: algoritam za sifrovanje. String oblika 'ALG-OPM', gde
      je ALG string koji identifikuje block cipher algoritam. Dostupni algoritmi
-     se nalaze u skupu cryptography.block_ciphers.available_algorithms. OPM je
+     se nalaze u skupu block_ciphers.available_algorithms. OPM je
      string koji identifikuje mod operacije. Dostupni modovi se nalaze u skupu
-     cryptography.block_ciphers.available_operation_modes
+     block_ciphers.available_operation_modes
 
     :param authenticate: odredjuje da li treba da se vrsi dodavanje HMAC koda
      na ciphertext
@@ -50,7 +50,7 @@ def encrypt(infile, outfile, key, algorithm, authenticate=False):
         if algorithm not in algorithms:
             return "Nepostojeci algoritam" + algorithm
         if operation_mode not in operation_modes:
-            return "Nepostojeci mod operacije: " + operation_modes
+            return "Nepostojeci mod operacije: " + operation_mode
         algorithm = algorithms[algorithm]
         if not algorithm.validate_key(key):
             return "Neispravan kljuc"
@@ -74,7 +74,7 @@ def encrypt(infile, outfile, key, algorithm, authenticate=False):
         print "Citanje fajla nije uspelo: "+error.strerror
 
 
-def decrypt(infile, outfile, key, algorithm, authenticate=False):
+def decrypt(infile, outfile, key, algorithm, authenticate=True):
     """
     Dekriptuje sadrzaj ulaznog fajla i upisuje ga u izlazni fajl.
 
@@ -87,9 +87,9 @@ def decrypt(infile, outfile, key, algorithm, authenticate=False):
 
     :param algorithm: algoritam za desifrovanje. String oblika 'ALG-OPM', gde
      je ALG string koji identifikuje block cipher algoritam. Dostupni algoritmi
-     se nalaze u skupu cryptography.block_ciphers.available_algorithms. OPM je
+     se nalaze u skupu block_ciphers.available_algorithms. OPM je
      string koji identifikuje mod operacije. Dostupni modovi se nalaze u skupu
-     cryptography.block_ciphers.available_operation_modes
+     block_ciphers.available_operation_modes
 
     :param authenticate: odredjuje da li treba da se vrsi provera HMAC koda koji se
     nalazi na kraju fajla. HMAC mora postojati u ulazu. Ako HMAC nije validan ili ne postoji
@@ -106,7 +106,7 @@ def decrypt(infile, outfile, key, algorithm, authenticate=False):
         if algorithm not in algorithms:
             return "Nepostojeci algoritam" + algorithm
         if operation_mode not in operation_modes:
-            return "Nepostojeci mod operacije: " + operation_modes
+            return "Nepostojeci mod operacije: " + operation_mode
         algorithm = algorithms[algorithm]
         if not algorithm.validate_key(key):
             return "Neispravan kljuc"
@@ -130,10 +130,10 @@ def decrypt(infile, outfile, key, algorithm, authenticate=False):
         for block in operation_modes[operation_mode].decrypt(blocks, key, algorithm):
             outfile.write(block)
         return None  # sve OK
-    except IndexError:
+    except BadLengthError:
         return "Sadrzaj fajla je neispravan ili nije odgovarajuce duzine"
-    except OSError:
-        return "Neuspelo citanje fajla"
+    except OSError as error:
+        print "Citanje fajla nije uspelo: "+error.strerror
 
 
 def generate_key(password, algorithm):
@@ -143,7 +143,7 @@ def generate_key(password, algorithm):
     :param password: sifra korisnika, string proizvoljnog oblika
 
     :param algorithm: ime algoritma za koji je kljuc namenjen. Dostupni algoritmi
-     se nalaze u listi cryptography.block_ciphers.available_algorithms
+     se nalaze u listi block_ciphers.available_algorithms
 
     :return: kljuc za trazeni algoritam
     """
@@ -183,7 +183,7 @@ def test():
             input_file = open(output_file.name, "r")
             output_file = tempfile.NamedTemporaryFile("w", delete=False)
 
-            assert decrypt(input_file, output_file, key, algorithm + "-" + opmode, authenticate=authenticate)
+            assert (not decrypt(input_file, output_file, key, algorithm + "-" + opmode, authenticate=authenticate))
 
             input_file.close()
             output_file.close()

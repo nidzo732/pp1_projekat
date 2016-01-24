@@ -1,6 +1,10 @@
 import os
 
 
+class BadLengthError(Exception):
+    pass
+
+
 def pad_data(data, block_size):
     """
     Dovodi date podatke na duzinu deljivu sa
@@ -16,8 +20,7 @@ def unpad_data(data):
     """
     Skida bajtove dodate funkcijom pad_data.
     """
-    while data[-1] != "\xff":
-        data = data[:-1]
+    data = data.rstrip("\x00")
     return data[:-1]
 
 
@@ -39,12 +42,14 @@ def fetch_blocks(input_file, block_size, mac_size=-1, pad=True):
      podaci blok po blok
     """
     last_block = None
-    mac_start = -1
+    mac_start = None
     data_read = 0
     if mac_size != -1:
         input_file.seek(-mac_size, os.SEEK_END)
         mac_start = input_file.tell()
         input_file.seek(0)
+        if mac_start % block_size != 0:
+            raise BadLengthError()
     while True:
         if data_read == mac_start:  # stigli smo na pocetak HMAC koda
             break                   # ne citamo dalje
@@ -53,16 +58,21 @@ def fetch_blocks(input_file, block_size, mac_size=-1, pad=True):
             break
         block = input_file.read(block_size)
         data_read += len(block)
-        if len(block) == block_size:    # blok je ok duzine
+        if mac_start and data_read > mac_start:  # blokovi nisu duzine block size
+            raise BadLengthError()               # upali smo u HMAC
+        if len(block) == block_size:  # blok je ok duzine
             yield block
-        else:   # ovo je poslednji blok, kraci od block_size
-            if pad: # padujemo ga ako treba
+        else:             # ovo je poslednji blok, kraci od block_size
+            if pad:       # padujemo ga ako treba
                 block = pad_data(block, block_size)
                 if len(block) == block_size:
                     yield block
                     break
-                else:   # padovanje nekad napravi dva bloka, pa ih vracamo u odvojenim koracima
+                else:  # padovanje nekad napravi dva bloka, pa ih vracamo u odvojenim koracima
                     last_block = block[-block_size:]
                     yield block[:-block_size]
             else:
-                break   # ne padujemo nista, na kraju smo, citanje gotovo
+                if block:
+                    raise BadLengthError()  # poslednji blok mora imati block_size ili 0 duzinu
+                else:                       # ako ne radimo padovanje
+                    break

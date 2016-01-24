@@ -29,12 +29,28 @@ Da bi se dodao novi mod operacije, potrebno je uraditi sledece:
 3) Importovati modul i dodati ga u recnik operation_modes,
 dodeliti mu string koji ga jedinstveno identifikuje
 """
-from cryptography.block_ciphers.operation_modes import cbc, pcbc, cfb, ofb, ctr
+import logging
+from block_ciphers.operation_modes import cfb, ofb, ctr
+from block_ciphers.operation_modes import cbc, pcbc
 
-operation_modes = {"CBC": cbc,
-                   "PCBC": pcbc,
-                   "CFB": cfb,
-                   "OFB": ofb,
-                   "CTR": ctr}
+installed_operation_modes = {"CBC": cbc,
+                             "PCBC": pcbc,
+                             "CFB": cfb,
+                             "OFB": ofb,
+                             "CTR": ctr
+                             }
+
+operation_modes = {}
+required_attributes = ["encrypt", "decrypt"]
+
+# proveravamo da li svi modovi imaju trazenu strukturu, oni koji je nemaju se ne dodaju
+# na listu dostupnih
+for mode_name in installed_operation_modes:
+    for attribute in required_attributes:
+        if not hasattr(installed_operation_modes[mode_name], attribute):
+            logging.warning("Algoritam {} nije ispravan, nedostaje {}".format(mode_name, attribute))
+            break
+    else:
+        operation_modes[mode_name] = installed_operation_modes[mode_name]
 
 __all__ = ["operation_modes"]

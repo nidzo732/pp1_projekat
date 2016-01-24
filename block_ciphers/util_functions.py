@@ -1,11 +1,13 @@
 """
 Ovaj modul implementira zajednicke funkcije, koje cesto koriste
-razni kriptografski.
+razni kriptografski algoritmi.
 
 """
+
+
 def bytes_to_integer(byte_string):
     """
-    Pretvara niz bajtova u pozitivan ceo broj.
+    Pretvara niz bajtova u pozitivan ceo broj
     """
     integer = 0
     for byte in byte_string:
@@ -27,7 +29,7 @@ def integer_to_bytes(integer):
 
 def xor_blocks(block1, block2):
     """
-    Kombinuje dva niza bajtova, bajt po bajt XOR-ovanjem.
+    Kombinuje dva niza bajtova, bajt po bajt XOR-ovanjem
     """
     assert len(block1) == len(block2)
     output_block = ""

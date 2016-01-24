@@ -6,7 +6,7 @@ Processing Standards Publication 46-3", NIST 1999.
 
 import hashlib
 
-from cryptography.block_ciphers.algorithms import des
+from block_ciphers.algorithms import des
 
 BLOCK_SIZE = 8
 

@@ -5,7 +5,8 @@ Processing Standards Publication 46-3", NIST 1999.
 """
 
 import hashlib
-from cryptography.util_functions import bytes_to_integer, integer_to_bytes
+
+from block_ciphers.util_functions import bytes_to_integer, integer_to_bytes
 
 BLOCK_SIZE = 8
 MAX_KEY_SCHEDULE_CACHE_SIZE = 4
@@ -40,14 +41,10 @@ block_expansion_map = [31, 0, 1, 2, 3, 4, 3, 4,
                        27, 28, 27, 28, 29, 30, 31, 0]
 
 # mapa za zavrsnu permutaciju podbloka, tokom jedne iteracije
-p_map = [16, 7, 20, 21,
-         29, 12, 28, 17,
-         1, 15, 23, 26,
-         5, 18, 31, 10,
-         2, 8, 24, 14,
-         32, 27, 3, 9,
-         19, 13, 30, 6,
-         22, 11, 4, 25]
+p_map = [16, 7, 20, 21, 29, 12, 28, 17,
+         1, 15, 23, 26, 5, 18, 31, 10,
+         2, 8, 24, 14, 32, 27, 3, 9,
+         19, 13, 30, 6, 22, 11, 4, 25]
 
 # tabele za selection funkcije
 s_tables = {1: [[14, 4, 13, 1, 2, 15, 11, 8, 3, 10, 6, 12, 5, 9, 0, 7],
@@ -123,8 +120,8 @@ def generate_key(password):
         while primary_byte > 0:
             bit_count += primary_byte % 2
             primary_byte /= 2
-        if bit_count % 2 == 0:         # imamo paran broj bitova
-            byte = chr(ord(byte) ^ 1)  # flipuj poslednji
+        if bit_count % 2 == 0:         # imamo paran broj jedinica
+            byte = chr(ord(byte) ^ 1)  # flipuj poslednji bit
         valid_key += byte
     return valid_key
 
@@ -230,7 +227,7 @@ def encrypt_block(block, key):
     assert len(block) == 8
 
     block = bytes_to_integer(block)  # sadrzaj bloka se pretvara u broj
-    key = bytes_to_integer(key)  # radi lakse obrade
+    key = bytes_to_integer(key)      # radi lakse obrade
 
     block = permute_block(block, initial_permutation_map)  # pocetna permutacija
 
@@ -262,7 +259,7 @@ def decrypt_block(block, key):
     assert len(block) == 8
 
     block = bytes_to_integer(block)  # konverzija u broj
-    key = bytes_to_integer(key)  # radi lakse obrade
+    key = bytes_to_integer(key)      # radi lakse obrade
 
     block = permute_block(block, initial_permutation_map)  # pocetna permutacija
 

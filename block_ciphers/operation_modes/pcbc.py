@@ -4,8 +4,8 @@ blok-sifru
 """
 from os import urandom
 
-from cryptography.block_ciphers.block_management import unpad_data
-from cryptography.util_functions import xor_blocks
+from block_ciphers.block_management import unpad_data
+from block_ciphers.util_functions import xor_blocks
 
 
 def encrypt(blocks, key, algorithm):
